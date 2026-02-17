@@ -1,6 +1,6 @@
 # Voice RAG — Talk to My Digital Twin
 
-![Voice RAG Banner](assets/banner.png)
+![Voice RAG Banner](assets/img.png)
 
 A simple voice-based RAG (Retrieval Augmented Generation) app where you speak a question, it searches through my personal data, and responds back in audio. Like talking to a clone of me.
 
