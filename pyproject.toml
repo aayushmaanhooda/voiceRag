@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "edge-tts>=7.2.7",
     "faiss-cpu>=1.13.2",
+    "fastapi>=0.129.0",
     "faster-whisper>=1.2.1",
     "ipykernel>=7.2.0",
     "langchain>=1.2.10",
@@ -15,6 +16,8 @@ dependencies = [
     "langchain-text-splitters>=1.1.0",
     "pypdf>=6.7.0",
     "python-dotenv>=1.2.1",
+    "python-multipart>=0.0.22",
     "sounddevice>=0.5.5",
     "soundfile>=0.13.1",
+    "uvicorn>=0.41.0",
 ]

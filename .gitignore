@@ -1,2 +1,8 @@
 .env
 .venv
+app/me.pdf
+app/img.png
+audio_files
+audio_files/
+__pycache__
+__pycache__/

@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice RAG — Aayushmaan's Digital Twin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #0a0a0f;
+            --surface: #13131a;
+            --border: #1e1e2a;
+            --text: #e4e4e7;
+            --muted: #71717a;
+            --accent: #22d3ee;
+            --accent-glow: rgba(34, 211, 238, 0.15);
+            --red: #ef4444;
+            --red-glow: rgba(239, 68, 68, 0.2);
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(34, 211, 238, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(34, 211, 238, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            padding: 2rem;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .header { text-align: center; }
+
+        .header h1 {
+            font-family: 'Space Mono', monospace;
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: var(--accent);
+        }
+
+        .header p {
+            color: var(--muted);
+            font-size: 0.85rem;
+            margin-top: 0.4rem;
+        }
+
+        /* Mic Button */
+        .mic-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mic-ring {
+            position: absolute;
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            transition: all 0.4s ease;
+        }
+
+        .mic-wrapper.recording .mic-ring {
+            border-color: var(--red);
+            box-shadow: 0 0 40px var(--red-glow), 0 0 80px var(--red-glow);
+            animation: pulse-ring 1.5s ease-in-out infinite;
+        }
+
+        .mic-wrapper.processing .mic-ring {
+            border-color: var(--accent);
+            box-shadow: 0 0 40px var(--accent-glow);
+            animation: spin-ring 2s linear infinite;
+        }
+
+        @keyframes pulse-ring {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.08); opacity: 0.6; }
+        }
+
+        @keyframes spin-ring {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .mic-btn {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 2;
+        }
+
+        .mic-btn:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .mic-btn:active { transform: scale(0.96); }
+
+        .mic-wrapper.recording .mic-btn {
+            border-color: var(--red);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .mic-wrapper.processing .mic-btn {
+            border-color: var(--accent);
+            cursor: wait;
+        }
+
+        .mic-btn svg {
+            width: 36px;
+            height: 36px;
+            transition: all 0.3s;
+        }
+
+        .mic-wrapper.recording .mic-btn svg { color: var(--red); }
+
+        /* Status */
+        .status {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--muted);
+            text-align: center;
+            min-height: 1.2rem;
+            transition: color 0.3s;
+        }
+
+        .status.recording { color: var(--red); }
+        .status.processing { color: var(--accent); }
+        .status.speaking { color: var(--accent); }
+
+        /* Waveform */
+        .waveform-container {
+            width: 100%;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            opacity: 0;
+            transform: scaleY(0.5);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .waveform-container.active {
+            opacity: 1;
+            transform: scaleY(1);
+        }
+
+        .wave-bar {
+            width: 4px;
+            height: 4px;
+            background: var(--accent);
+            border-radius: 4px;
+            transition: height 0.06s ease;
+            box-shadow: 0 0 6px rgba(34, 211, 238, 0.3);
+        }
+
+        .hidden-audio { display: none; }
+
+        /* Footer */
+        .footer {
+            font-size: 0.75rem;
+            color: var(--accent);
+            opacity: 0.6;
+            font-family: 'Space Mono', monospace;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>// aayushmaan.twin</h1>
+            <p>Tap the mic and ask me anything</p>
+        </div>
+
+        <div class="mic-wrapper" id="micWrapper">
+            <div class="mic-ring"></div>
+            <button class="mic-btn" id="micBtn" onclick="toggleRecording()">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="status" id="status">Press the mic to speak</div>
+
+        <div class="waveform-container" id="waveform"></div>
+
+        <audio class="hidden-audio" id="audioPlayer" crossorigin="anonymous"></audio>
+
+        <div class="footer">powered by faster-whisper + langchain + edge-tts</div>
+    </div>
+
+    <script>
+        const API_BASE = "http://localhost:8000";
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+        let audioContext = null;
+        let analyser = null;
+        let sourceNode = null;
+        let animationId = null;
+
+        // Create waveform bars
+        const waveformEl = document.getElementById("waveform");
+        const BAR_COUNT = 50;
+        for (let i = 0; i < BAR_COUNT; i++) {
+            const bar = document.createElement("div");
+            bar.className = "wave-bar";
+            waveformEl.appendChild(bar);
+        }
+        const bars = waveformEl.querySelectorAll(".wave-bar");
+
+        async function toggleRecording() {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        }
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+
+                mediaRecorder.onstop = async () => {
+                    stream.getTracks().forEach(track => track.stop());
+                    const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+                    await sendAudio(audioBlob);
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+
+                document.getElementById("micWrapper").classList.add("recording");
+                document.getElementById("status").textContent = "Listening... tap again to stop";
+                document.getElementById("status").className = "status recording";
+            } catch (err) {
+                document.getElementById("status").textContent = "Mic access denied. Check permissions.";
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                mediaRecorder.stop();
+            }
+            isRecording = false;
+            document.getElementById("micWrapper").classList.remove("recording");
+            document.getElementById("micWrapper").classList.add("processing");
+            document.getElementById("status").textContent = "Thinking...";
+            document.getElementById("status").className = "status processing";
+        }
+
+        async function sendAudio(audioBlob) {
+            const formData = new FormData();
+            formData.append("audio", audioBlob, "recording.wav");
+
+            try {
+                const res = await fetch(`${API_BASE}/ask-voice`, {
+                    method: "POST",
+                    body: formData,
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) throw new Error(data.detail || "Something went wrong");
+
+                document.getElementById("micWrapper").classList.remove("processing");
+                document.getElementById("status").textContent = "Speaking...";
+                document.getElementById("status").className = "status speaking";
+
+                playWithWaveform(`${API_BASE}${data.audio_url}`);
+
+            } catch (err) {
+                document.getElementById("status").textContent = "Error: " + err.message;
+                document.getElementById("status").className = "status";
+                document.getElementById("micWrapper").classList.remove("processing");
+            }
+        }
+
+        function playWithWaveform(audioUrl) {
+            const audio = document.getElementById("audioPlayer");
+            audio.src = audioUrl;
+
+            // Setup audio context once
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                sourceNode = audioContext.createMediaElementSource(audio);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 128;
+                analyser.smoothingTimeConstant = 0.8;
+                sourceNode.connect(analyser);
+                analyser.connect(audioContext.destination);
+            }
+
+            // Resume context (needed after user gesture)
+            audioContext.resume();
+
+            // Show waveform
+            waveformEl.classList.add("active");
+            visualize();
+            audio.play();
+
+            audio.onended = () => {
+                cancelAnimationFrame(animationId);
+
+                // Fade out bars smoothly
+                bars.forEach(bar => {
+                    bar.style.height = "4px";
+                    bar.style.opacity = "0.3";
+                });
+
+                // Hide waveform after fade
+                setTimeout(() => {
+                    waveformEl.classList.remove("active");
+                }, 400);
+
+                document.getElementById("status").textContent = "Press the mic to speak";
+                document.getElementById("status").className = "status";
+            };
+        }
+
+        function visualize() {
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(dataArray);
+
+            for (let i = 0; i < BAR_COUNT; i++) {
+                const index = Math.floor((i / BAR_COUNT) * dataArray.length);
+                const value = dataArray[index];
+                const height = Math.max(4, (value / 255) * 65);
+                bars[i].style.height = `${height}px`;
+                bars[i].style.opacity = `${0.3 + (value / 255) * 0.7}`;
+            }
+
+            animationId = requestAnimationFrame(visualize);
+        }
+    </script>
+</body>
+</html>
