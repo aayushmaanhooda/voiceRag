@@ -1,7 +1,7 @@
 .env
 .venv
 app/me.pdf
-# app/img.png
+app/img.png
 audio_files
 audio_files/
 __pycache__
